@@ -1,11 +1,14 @@
 package structs
 
 import (
-	"flag"
 	"fmt"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
+
+type CommandsData struct {
+	Commands any
+}
 
 type FlagValue struct {
 	Str  *string
@@ -14,14 +17,19 @@ type FlagValue struct {
 
 type RunService struct {
 	Model        CommandModel
-	CommandsList map[string]*interface{}
-	Commands     map[string]Command
 	EntryCommand string
 	Command      string
-	RawCommands  []Command
+	RawCommands  CommandsData
 	Callback     func(*RunService)
 	UseTea       bool
 	TeaCallback  func(tea.Msg) (tea.Model, tea.Cmd)
+}
+
+func (cd *CommandsData) GetRunData() (*CommandsRun, error) {
+	if runData, ok := cd.Commands.(*CommandsRun); ok {
+		return runData, nil
+	}
+	return nil, fmt.Errorf("Commands is not of type *CommandsRun")
 }
 
 func (f *FlagValue) Called(command Command) bool {
@@ -43,28 +51,4 @@ func (r *RunService) Run() {
 		}
 	}
 }
-func (r *RunService) InitCommands() {
-	// Initialize the maps if they are nil
-	if r.Commands == nil {
-		r.Commands = make(map[string]Command)
-	}
-	if r.CommandsList == nil {
-		r.CommandsList = make(map[string]*interface{}) // Ensure CommandsList is initialized
-	}
 
-	for _, command := range r.RawCommands {
-		r.Commands[command.Name] = command
-		switch command.Type {
-		case "bool":
-			val := flag.Bool(command.Flag, command.ParseDefault().(bool), command.Description)
-			var valInterface interface{} = val
-			r.CommandsList[command.Name] = &valInterface
-		case "string":
-			val := flag.String(command.Flag, command.ParseDefault().(string), command.Description)
-			var valInterface interface{} = val
-			r.CommandsList[command.Name] = &valInterface
-		default:
-			fmt.Println("Invalid command type")
-		}
-	}
-}

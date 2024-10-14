@@ -15,13 +15,9 @@ func (c *CLI) init() {
 	c.modules = map[string]*structs.RunService{
 		"run": NewRunService(),
 	}
-	for _, module := range c.modules {
-		module.InitCommands()
-	}
 }
 
-func (c *CLI) verifyEntryCommand(command string) (string,error) {
-	fmt.Printf("command: %s\n", command)
+func (c *CLI) verifyEntryCommand(command string) (string, error) {
 	for key := range c.modules {
 		if key == command {
 			return key, nil
@@ -30,7 +26,7 @@ func (c *CLI) verifyEntryCommand(command string) (string,error) {
 	return "", fmt.Errorf("Invalid entry command: %s", command)
 }
 
-func (c *CLI) Init() *CLI{
+func (c *CLI) Init() *CLI {
 	c.init()
 	return c
 }
@@ -49,7 +45,6 @@ func (c *CLI) GetEntryCommand() string {
 }
 
 func (c *CLI) Run() {
-	fmt.Println("Running CLI")
 	entryCommand := c.GetEntryCommand()
 	if entryCommand == "" {
 		fmt.Println("Invalid entry command")
