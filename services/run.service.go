@@ -6,6 +6,8 @@ import (
 
 	"watch-me/structs"
 
+	"watch-me/shared"
+
 	"github.com/jessevdk/go-flags"
 )
 
@@ -22,12 +24,38 @@ func getRawCommandList() structs.CommandsData {
 }
 
 func callback(r *structs.RunService) {
-	data,_ := r.RawCommands.GetRunData()
+	data, _ := r.RawCommands.GetRunData()
 	_, err := flags.Parse(data)
 	if err != nil {
 		fmt.Println("Error parsing args: ", err)
 		return
 	}
+	fmt.Println("Running service")
+	fmt.Println("Name: ", data.Name)
+	fmt.Println("Dockerfile: ", data.DockerFile)
+	fmt.Println("Dockerize: ", data.Dockerize)
+	fmt.Println("CodeLang: ", data.CodeLang)
+	if data.DockerFile != "" && data.Dockerize {
+		panic("Cannot use both dockerfile and dockerize flags")
+	}
+	if data.Name == "" {
+		data.Name = generateRandomName()
+	}
+	if data.CodeLang != "" {
+		path := fmt.Sprintf("~/.config/watch-me/templates/Dockerfile.%s", data.CodeLang)
+		fmt.Println("Path: ", path)
+		switch data.CodeLang {
+		case "node":
+			shared.ExeCommand("cp", path, "./Dockerfile")
+		}
+	}
+	if data.DockerFile != "" {
+		shared.ExeCommand("docker", "build", "-t", data.Name, "-f", data.DockerFile, ".")
+	} else {
+		shared.ExeCommand("docker", "build", "-t", data.Name, ".")
+	}
+	shared.ExeCommand("docker", "run", "-d", "--name", data.Name+"-container", data.Name)
+
 }
 
 func NewRunService() *structs.RunService {
