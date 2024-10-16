@@ -6,3 +6,7 @@ type CommandsRun struct {
 	Dockerize 		bool   `short:"z" long:"dockerize" description:"Dockerize the service"`
 	CodeLang 		string `short:"l" long:"lang" description:"Programming language to use"`
 }
+
+type CommandsInit struct {
+	
+}

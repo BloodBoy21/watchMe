@@ -1,37 +1,52 @@
 package shared
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
 )
-
-func ExeCommand(args ...string) {
-
-    // Expand '~' to the home directory if used in the path
+func ExeCommand(args ...string) (string, error) {
+    // Resolve any "~" in the args to the home directory
     for i, arg := range args {
         if strings.HasPrefix(arg, "~") {
             homeDir, err := os.UserHomeDir()
             if err != nil {
                 fmt.Println("Error resolving home directory:", err)
-                return
+                return "", err
             }
             args[i] = strings.Replace(arg, "~", homeDir, 1)
         }
     }
 
-    // Prepare the command
     cmd := exec.Command(args[0], args[1:]...)
 
-    // Set stdout and stderr to os.Stdout and os.Stderr to stream output in real time
-    cmd.Stdout = os.Stdout
-    cmd.Stderr = os.Stderr
+    var stdoutBuf, stderrBuf bytes.Buffer
 
-    // Run the command and wait for it to finish
+    stdoutMulti := io.MultiWriter(os.Stdout, &stdoutBuf)
+    stderrMulti := io.MultiWriter(os.Stderr, &stderrBuf)
+
+    cmd.Stdout = stdoutMulti
+    cmd.Stderr = stderrMulti
+
     err := cmd.Run()
 
+    logs := stdoutBuf.String() + stderrBuf.String()
+
     if err != nil {
-        fmt.Printf("Error running command: %v\n", err)
+        fmt.Println("Error running command:", err)
+        return logs, err
     }
+
+    return logs, nil
+}
+func GetCallingPath() string {
+	cwd, err := os.Getwd()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return ""
+	}
+	return cwd
 }

@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"time"
 
-	"watch-me/structs"
+	"github.com/jessevdk/go-flags"
 
 	"watch-me/shared"
-
-	"github.com/jessevdk/go-flags"
+	"watch-me/structs"
 )
 
 func generateRandomName() string {
@@ -16,25 +15,19 @@ func generateRandomName() string {
 	return fmt.Sprintf("service-%d", timestamp)
 }
 
-func getRawCommandList() structs.CommandsData {
-	commands := structs.CommandsRun{}
-	return structs.CommandsData{
-		Commands: &commands,
-	}
-}
-
-func callback(r *structs.RunService) {
+func runCallback(r *structs.RunService) {
 	data, _ := r.RawCommands.GetRunData()
 	_, err := flags.Parse(data)
 	if err != nil {
 		fmt.Println("Error parsing args: ", err)
 		return
 	}
-	fmt.Println("Running service")
 	fmt.Println("Name: ", data.Name)
 	fmt.Println("Dockerfile: ", data.DockerFile)
 	fmt.Println("Dockerize: ", data.Dockerize)
 	fmt.Println("CodeLang: ", data.CodeLang)
+	fmt.Println()
+	callingPath := shared.GetCallingPath()
 	if data.DockerFile != "" && data.Dockerize {
 		panic("Cannot use both dockerfile and dockerize flags")
 	}
@@ -42,30 +35,38 @@ func callback(r *structs.RunService) {
 		data.Name = generateRandomName()
 	}
 	if data.CodeLang != "" {
-		path := fmt.Sprintf("~/.config/watch-me/templates/Dockerfile.%s", data.CodeLang)
-		fmt.Println("Path: ", path)
+		dockerfilePath := fmt.Sprintf("~/.config/watch-me/templates/Dockerfile.%s", data.CodeLang)
+		dockerIgnoresPath := fmt.Sprintf("~/.config/watch-me/templates/ignores/dockerignore.%s", data.CodeLang)
 		switch data.CodeLang {
 		case "node":
-			shared.ExeCommand("cp", path, "./Dockerfile")
+			shared.ExeCommand("cp", dockerfilePath, "./Dockerfile")
+			shared.ExeCommand("cp", dockerIgnoresPath, "./.dockerignore")
 		}
+		data.DockerFile = callingPath + "/Dockerfile"
 	}
-	if data.DockerFile != "" {
-		shared.ExeCommand("docker", "build", "-t", data.Name, "-f", data.DockerFile, ".")
-	} else {
-		shared.ExeCommand("docker", "build", "-t", data.Name, ".")
+	_, err = shared.ExeCommand("docker", "build", "-t", data.Name, "-f", data.DockerFile, callingPath, "--no-cache")
+	if err != nil {
+		panic(err)
 	}
-	shared.ExeCommand("docker", "run", "-d", "--name", data.Name+"-container", data.Name)
-
+	dockerId, err := shared.ExeCommand("docker", "run", "-d", "--name", data.Name+"-container", data.Name)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("Docker container id: ", dockerId)
 }
 
 func NewRunService() *structs.RunService {
 	_model := structs.CommandModel{}
+	commands := structs.CommandsRun{}
+	rawCommands := structs.CommandsData{
+		Commands: &commands,
+	}
 	service := &structs.RunService{
 		Model:        _model,
 		EntryCommand: "run",
 		Command:      "run",
-		RawCommands:  getRawCommandList(),
-		Callback:     callback,
+		RawCommands:  rawCommands,
+		Callback:     runCallback,
 	}
 	return service
 }

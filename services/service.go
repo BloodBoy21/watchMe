@@ -14,6 +14,7 @@ type CLI struct {
 func (c *CLI) init() {
 	c.modules = map[string]*structs.RunService{
 		"run": NewRunService(),
+		"init": NewInitService(),
 	}
 }
 
@@ -43,6 +44,7 @@ func (c *CLI) GetEntryCommand() string {
 	}
 	return entryCommand
 }
+
 
 func (c *CLI) Run() {
 	entryCommand := c.GetEntryCommand()

@@ -32,6 +32,13 @@ func (cd *CommandsData) GetRunData() (*CommandsRun, error) {
 	return nil, fmt.Errorf("Commands is not of type *CommandsRun")
 }
 
+func (cd *CommandsData) GetInitData() (*CommandsInit, error) {
+	if initData, ok := cd.Commands.(*CommandsInit); ok {
+		return initData, nil
+	}
+	return nil, fmt.Errorf("Commands is not of type *CommandsInit")
+}
+
 func (f *FlagValue) Called(command Command) bool {
 	if command.Type == "bool" {
 		return *f.Bool
