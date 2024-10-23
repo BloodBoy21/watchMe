@@ -22,14 +22,12 @@ func runCallback(r *structs.RunService) {
 		fmt.Println("Error parsing args: ", err)
 		return
 	}
-	fmt.Println("Name: ", data.Name)
-	fmt.Println("Dockerfile: ", data.DockerFile)
-	fmt.Println("Dockerize: ", data.Dockerize)
-	fmt.Println("CodeLang: ", data.CodeLang)
-	fmt.Println()
 	callingPath := shared.GetCallingPath()
 	if data.DockerFile != "" && data.Dockerize {
 		panic("Cannot use both dockerfile and dockerize flags")
+	}
+	if data.DockerFile == "" {
+		data.DockerFile = callingPath + "/Dockerfile"
 	}
 	if data.Name == "" {
 		data.Name = generateRandomName()
@@ -48,11 +46,20 @@ func runCallback(r *structs.RunService) {
 	if err != nil {
 		panic(err)
 	}
-	dockerId, err := shared.ExeCommand("docker", "run", "-d", "--name", data.Name+"-container", data.Name)
+	data.Args = append(data.Args, data.Name)
+	dockerId, err := shared.ExeCommand(append([]string{"docker", "run", "-d", "--name", data.Name + "-container"}, data.Args...)...)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println("Docker container id: ", dockerId)
+	service := structs.Service{
+		Name: data.Name,
+		Dockerfile: data.DockerFile,
+		DockerId: dockerId,
+		Codelang: data.CodeLang,
+		CreatedAt: time.Now().Format(time.RFC3339),
+		UpdatedAt: time.Now().Format(time.RFC3339),
+	}
+	shared.SaveService(&service)
 }
 
 func NewRunService() *structs.RunService {

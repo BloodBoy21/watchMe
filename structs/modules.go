@@ -5,6 +5,7 @@ type CommandsRun struct {
 	DockerFile 		string `short:"d" long:"dockerfile" description:"Dockerfile to use"`
 	Dockerize 		bool   `short:"z" long:"dockerize" description:"Dockerize the service"`
 	CodeLang 		string `short:"l" long:"lang" description:"Programming language to use"`
+	Args  []string `short:"a" long:"args" descriptions:"Arguments to pass to docker run"`
 }
 
 type CommandsInit struct {
